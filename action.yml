@@ -12,8 +12,32 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - run: docker run --rm -v $(pwd):/src -w /src ${{ inputs.image }} ${{ inputs.cmd }}
-      shell: bash
+    - shell: bash
+      run: |
+        env
+
+        if [ "x$RUNNER_OS" == 'xWindows' ] || [ 'x${{ inputs.image }}' == 'x' ]; then
+
+          if [ "x$RUNNER_OS" == 'xWindows' ]; then
+            curl -fsSL https://raw.githubusercontent.com/msys2/setup-msys2/v2/index.js > setup-msys2.js
+            INPUT_UPDATE='true' \
+            INPUT_RELEASE='true' \
+            INPUT_MSYSTEM='MINGW64' \
+            node setup-msys2.js
+          fi
+
+          curl -fsSL https://raw.githubusercontent.com/ghdl/setup-ghdl-ci/master/index.js > setup-ghdl-ci.js
+          node setup-ghdl-ci.js
+
+          python3 -m pip install wheel setuptools
+          python3 -m pip install pytest vunit_hdl
+
+          ${{ inputs.cmd }}
+
+          exit 0
+        fi
+
+        docker run --rm -v $(pwd):/src -w /src ${{ inputs.image }} ${{ inputs.cmd }}
 
 branding:
   icon: cpu
